@@ -1,64 +1,64 @@
+/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
+/*
+ *  (C) 2001 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
+
+#include "mpi.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <mpi.h>
+#include <math.h>
 
-int main(int argc, char **argv ) {
-  const int MASTER = 0;
-  const int TAG_GENERAL = 1;
+double f(double);
 
-  int numTasks;
-  int rank;
-  int source;
-  int dest;
-  int rc;
-  int count;
-  int dataWaitingFlag;
+double f(double a)  {
+    return (4.0 / (1.0 + a*a));
+}
 
-  char inMsg;
-  char outMsg;
 
-  MPI_Status Stat;
+int main(int argc,char *argv[])
+{
+    int    n, myid, numprocs, i;
+    double PI25DT = 3.141592653589793238462643;
+    double mypi, pi, h, sum, x;
+    double startwtime = 0.0, endwtime;
+    int    namelen;
+    char   processor_name[MPI_MAX_PROCESSOR_NAME];
 
-  // Initialize the MPI stack and pass 'argc' and 'argv' to each slave node
-  MPI_Init(&argc,&argv);
+    MPI_Init(&argc,&argv);
+    MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
+    MPI_Comm_rank(MPI_COMM_WORLD,&myid);
+    MPI_Get_processor_name(processor_name,&namelen);
 
-  // Gets number of tasks/processes that this program is running on
-  MPI_Comm_size(MPI_COMM_WORLD, &numTasks);
+    fprintf(stdout,"Process %d of %d is on %s\n",
+	    myid, numprocs, processor_name);
+    fflush(stdout);
 
-  // Gets the rank (process/task number) that this program is running on
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    n = 10000;			/* default # of rectangles */
+    if (myid == 0)
+	startwtime = MPI_Wtime();
 
-  // If the master node
-  if (rank == MASTER) {
+    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // Send out messages to all the sub-processes
-    for (dest = 1; dest < numTasks; dest++) {
-      outMsg = rand() % 256;	// Generate random message to send to slave nodes
+    h   = 1.0 / (double) n;
+    sum = 0.0;
+    /* A slightly better approach starts from large i and works back */
+    for (i = myid + 1; i <= n; i += numprocs)
+    {
+	x = h * ((double)i - 0.5);
+	sum += f(x);
+    }
+    mypi = h * sum;
 
-      // Send a message to the destination
-      rc = MPI_Send(&outMsg, 1, MPI_CHAR, dest, TAG_GENERAL, MPI_COMM_WORLD);
-      printf("Task %d: Sent message %d to task %d with tag %d\n",
-             rank, outMsg, dest, TAG_GENERAL);
+    MPI_Reduce(&mypi, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if (myid == 0) {
+	endwtime = MPI_Wtime();
+	printf("pi is approximately %.16f, Error is %.16f\n",
+	       pi, fabs(pi - PI25DT));
+	printf("wall clock time = %f\n", endwtime-startwtime);	       
+	fflush(stdout);
     }
 
-  }
-
-  // Else a slave node
-  else  {
-    // Wait until a message is there to be received
-    do {
-      MPI_Iprobe(MASTER, 1, MPI_COMM_WORLD, &dataWaitingFlag, MPI_STATUS_IGNORE);
-      printf("Waiting\n");
-    } while (!dataWaitingFlag);
-
-    // Get the message and put it in 'inMsg'
-    rc = MPI_Recv(&inMsg, 1, MPI_CHAR, MASTER, TAG_GENERAL, MPI_COMM_WORLD, &Stat);
-
-    // Get how big the message is and put it in 'count'
-    rc = MPI_Get_count(&Stat, MPI_CHAR, &count);
-    printf("Task %d: Received %d char(s) (%d) from task %d with tag %d \n",
-            rank, count, inMsg, Stat.MPI_SOURCE, Stat.MPI_TAG);
-  }
-
-  MPI_Finalize();
+    MPI_Finalize();
+    return 0;
 }
