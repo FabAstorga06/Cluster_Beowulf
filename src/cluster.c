@@ -1,64 +1,135 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
-/*
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- */
+/* This program sums all rows in an array using MPI parallelism.
+    * The root process acts as a master and sends a portion of the
+    * array to each child process.  Master and child processes then
+    * all calculate a partial sum of the portion of the array assigned
+    * to them, and the child processes send their partial sums to 
+    * the master, who calculates a grand total.
+    **/
 
-#include "mpi.h"
-#include <stdio.h>
-#include <math.h>
+   #include <stdio.h>
+   #include <stdlib.h>
+   #include <mpi.h>
+   
+   #define max_rows 100000
+   #define send_data_tag 2001
+   #define return_data_tag 2002
 
-double f(double);
+   int array[max_rows];
+   int array2[max_rows];
+   
+   int main(int argc, char **argv )  {
+      long int sum, partial_sum;
+      MPI_Status status;
+      int my_id, root_process, ierr, i, num_rows, num_procs,
+         an_id, num_rows_to_receive, avg_rows_per_process, 
+         sender, num_rows_received, start_row, end_row, num_rows_to_send;
 
-double f(double a)  {
-    return (4.0 / (1.0 + a*a));
-}
+      /* Now replicte this process to create parallel processes.
+       * From this point on, every process executes a seperate copy
+       * of this program */
 
+      ierr = MPI_Init(&argc, &argv);
+      
+      root_process = 0;
+      
+      /* find out MY process ID, and how many processes were started. */
+      
+      ierr = MPI_Comm_rank(MPI_COMM_WORLD, &my_id);
+      ierr = MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-int main(int argc,char *argv[])
-{
-    int    n, myid, numprocs, i;
-    double PI25DT = 3.141592653589793238462643;
-    double mypi, pi, h, sum, x;
-    double startwtime = 0.0, endwtime;
-    int    namelen;
-    char   processor_name[MPI_MAX_PROCESSOR_NAME];
+      if(my_id == root_process) {
+         
+         /* I must be the root process, so I will query the user
+          * to determine how many numbers to sum. */
 
-    MPI_Init(&argc,&argv);
-    MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
-    MPI_Comm_rank(MPI_COMM_WORLD,&myid);
-    MPI_Get_processor_name(processor_name,&namelen);
+         printf("please enter the number of numbers to sum: ");
+         scanf("%d", &num_rows);
+      
+         if(num_rows > max_rows) {
+            printf("Too many numbers.\n");
+            exit(1);
+         }
 
-    fprintf(stdout,"Process %d of %d is on %s\n",
-	    myid, numprocs, processor_name);
-    fflush(stdout);
+         avg_rows_per_process = num_rows / num_procs;
 
-    n = 10000;			/* default # of rectangles */
-    if (myid == 0)
-	startwtime = MPI_Wtime();
+         /* initialize an array */
 
-    MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+         for(i = 0; i < num_rows; i++) {
+            array[i] = i + 1;
+         }
 
-    h   = 1.0 / (double) n;
-    sum = 0.0;
-    /* A slightly better approach starts from large i and works back */
-    for (i = myid + 1; i <= n; i += numprocs)
-    {
-	x = h * ((double)i - 0.5);
-	sum += f(x);
-    }
-    mypi = h * sum;
+         /* distribute a portion of the bector to each child process */
+   
+         for(an_id = 1; an_id < num_procs; an_id++) {
+            start_row = an_id*avg_rows_per_process + 1;
+            end_row   = (an_id + 1)*avg_rows_per_process;
 
-    MPI_Reduce(&mypi, &pi, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+            if((num_rows - end_row) < avg_rows_per_process)
+               end_row = num_rows - 1;
 
-    if (myid == 0) {
-	endwtime = MPI_Wtime();
-	printf("pi is approximately %.16f, Error is %.16f\n",
-	       pi, fabs(pi - PI25DT));
-	printf("wall clock time = %f\n", endwtime-startwtime);	       
-	fflush(stdout);
-    }
+            num_rows_to_send = end_row - start_row + 1;
 
-    MPI_Finalize();
-    return 0;
-}
+            ierr = MPI_Send( &num_rows_to_send, 1 , MPI_INT,
+                  an_id, send_data_tag, MPI_COMM_WORLD);
+
+            ierr = MPI_Send( &array[start_row], num_rows_to_send, MPI_INT,
+                  an_id, send_data_tag, MPI_COMM_WORLD);
+         }
+
+         /* and calculate the sum of the values in the segment assigned
+          * to the root process */
+        
+         sum = 0;
+         for(i = 0; i < avg_rows_per_process + 1; i++) {
+            sum += array[i];   
+         } 
+
+         printf("sum %lu calculated by root process\n", sum);
+
+         /* and, finally, I collet the partial sums from the slave processes, 
+          * print them, and add them to the grand sum, and print it */
+
+         for(an_id = 1; an_id < num_procs; an_id++) {
+            
+            ierr = MPI_Recv( &partial_sum, 1, MPI_LONG, MPI_ANY_SOURCE,
+                  return_data_tag, MPI_COMM_WORLD, &status);
+  
+            sender = status.MPI_SOURCE;
+
+            printf("Partial sum %lu returned from process %d\n", partial_sum, sender);
+     
+            sum += partial_sum;
+         }
+
+         printf("The grand total is: %lu\n", sum);
+      }
+
+      else {
+
+         /* I must be a slave process, so I must receive my array segment,
+          * storing it in a "local" array, array1. */
+
+         ierr = MPI_Recv( &num_rows_to_receive, 1, MPI_INT, 
+               root_process, send_data_tag, MPI_COMM_WORLD, &status);
+          
+         ierr = MPI_Recv( &array2, num_rows_to_receive, MPI_INT, 
+               root_process, send_data_tag, MPI_COMM_WORLD, &status);
+
+         num_rows_received = num_rows_to_receive;
+
+         /* Calculate the sum of my portion of the array */
+
+         partial_sum = 0;
+         for(i = 0; i < num_rows_received; i++) {
+            partial_sum += array2[i];
+         }
+
+         /* and finally, send my partial sum to hte root process */
+
+         ierr = MPI_Send( &partial_sum, 1, MPI_LONG, root_process, 
+               return_data_tag, MPI_COMM_WORLD);
+      }
+      ierr = MPI_Finalize();
+      return 0;
+
+   }
