@@ -7,6 +7,9 @@
 
 int main(int argc, char **argv) {
 
+    Image _img = load_image(argv[2]);
+    print_RGBimg(_img);
+
     MPI_Init(&argc, &argv);
     int p, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &p);
@@ -14,11 +17,12 @@ int main(int argc, char **argv) {
     char i;
 
     char a[ROWS*COLS];
-    const int NPROWS=2;  /* number of rows in _decomposition_ */
+    const int NPROWS=1;  /* number of rows in _decomposition_ */
     const int NPCOLS=1;  /* number of cols in _decomposition_ */
     const int BLOCKROWS = ROWS/NPROWS;  /* number of rows in _block_ */
     const int BLOCKCOLS = COLS/NPCOLS; /* number of cols in _block_ */
 
+    // Fill the matrix with the image pixels
     if (rank == 0) {
         for (int ii=0; ii<ROWS*COLS; ii++) {
             a[ii] = (char)ii;
@@ -48,9 +52,9 @@ int main(int argc, char **argv) {
             counts [ii*NPCOLS+jj] = 1;
         }
     }
-
+    //printf("a -> %d\n", );
     MPI_Scatterv(a, counts, disps, blocktype, b, BLOCKROWS*BLOCKCOLS, MPI_CHAR, 0, MPI_COMM_WORLD);
-    
+
     /* each proc prints it's "b" out, in order */
     for (int proc=0; proc<p; proc++) {
         if (proc == rank) {
@@ -64,31 +68,36 @@ int main(int argc, char **argv) {
                     printf("\n");
                 }
             }
-            printf("Local Matrix:\n");
-            for (int ii=0; ii<BLOCKROWS; ii++) {
-                for (int jj=0; jj<BLOCKCOLS; jj++) {
-                    printf("%3d ",(int)b[ii*BLOCKCOLS+jj]);
-                }
-                printf("\n");
+            else {
+              printf("Local Matrix:\n");
+              for (int ii=0; ii<BLOCKROWS; ii++) {
+                  for (int jj=0; jj<BLOCKCOLS; jj++) {
+                      printf("%3d ",(int)b[ii*BLOCKCOLS+jj]);
+                  }
+                  printf("\n");
+              }
             }
+
             printf("\n");
         }
         MPI_Barrier(MPI_COMM_WORLD);
-    } 
+    }
 
     MPI_Finalize();
 
 
-    /* Se checkean los parametros de entrada */    
+     /*****************************************************************************/
+
+    /* Se checkean los parametros de entrada */
     if (argc != PARAMS) {
     	printf("Inserte los parametros necesarios...\n");
 	exit(1);
-    }	
+    }
     int kernel_size = atoi(argv[1]);
 
     Matrix _kernel = calc_kernel(kernel_size, kernel_size, 10.0);
     std::cout << "Cargando imagen..." << std::endl;
-    Image _img = load_image(argv[2]);
+    //Image _img = load_image(argv[2]);
     std::cout << "Aplicando filtro Gaussian Blur..." << std::endl;
     Image _new_img = apply_gaussian_filter(_img, _kernel);
     std::cout << "Guardando imagen..." << std::endl;
