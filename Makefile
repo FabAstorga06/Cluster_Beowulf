@@ -3,24 +3,26 @@ SDIR = ./src
 ODIR = ./obj
 
 CC = gcc
-MPI = mpicc
-CFLAGS = -I$(IDIR)
+MPICC = mpicc
+CXX = g++
+MPIXX = mpic++
+CPPFLAGS = -std=c++11 -O3 -I$(IDIR) `libpng-config --cflags`
+PNG = `libpng-config --ldflags`
 
 EXEC = cluster
 
-_DEPS = 
+_DEPS = constants.h image_utils.hpp gaussian_blur.hpp
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 _OBJ = $(EXEC).o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-LIBS = 
 
-$(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
-	$(MPI) -c -o $@ $< $(CFLAGS)
+$(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
+	$(MPIXX) -c -o $@ $< $(CPPFLAGS) 
 
 $(EXEC): $(OBJ)
-	$(MPI) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(MPIXX) -o $@ $^ $(CPPFLAGS) $(PNG)
 
 .PHONY: clean
 clean:
