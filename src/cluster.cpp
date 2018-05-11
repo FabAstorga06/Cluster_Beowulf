@@ -8,7 +8,7 @@
 int main(int argc, char **argv) {
 
     Image _img = load_image(argv[2]);
-    print_RGBimg(_img);
+    //print_RGBimg(_img);
 
     MPI_Init(&argc, &argv);
     int p, rank;
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
     char a[ROWS*COLS];
     const int NPROWS=1;  /* number of rows in _decomposition_ */
-    const int NPCOLS=1;  /* number of cols in _decomposition_ */
+    const int NPCOLS=3;  /* number of cols in _decomposition_ */
     const int BLOCKROWS = ROWS/NPROWS;  /* number of rows in _block_ */
     const int BLOCKCOLS = COLS/NPCOLS; /* number of cols in _block_ */
 
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
                     printf("\n");
                 }
             }
-            else {
+            //else {
               printf("Local Matrix:\n");
               for (int ii=0; ii<BLOCKROWS; ii++) {
                   for (int jj=0; jj<BLOCKCOLS; jj++) {
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
                   }
                   printf("\n");
               }
-            }
+            //}
 
             printf("\n");
         }
@@ -93,9 +93,10 @@ int main(int argc, char **argv) {
     	printf("Inserte los parametros necesarios...\n");
 	exit(1);
     }
+
     int kernel_size = atoi(argv[1]);
 
-    Matrix _kernel = calc_kernel(kernel_size, kernel_size, 10.0);
+    Matrix _kernel = calc_kernel(kernel_size, kernel_size, 100.0);
     std::cout << "Cargando imagen..." << std::endl;
     //Image _img = load_image(argv[2]);
     std::cout << "Aplicando filtro Gaussian Blur..." << std::endl;
@@ -103,6 +104,5 @@ int main(int argc, char **argv) {
     std::cout << "Guardando imagen..." << std::endl;
     save_image(_new_img, argv[3]);
     std::cout << "Listo!" << std::endl;
-
     return 0;
 }

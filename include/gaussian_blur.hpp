@@ -52,14 +52,14 @@ Image apply_gaussian_filter(Image &img, Matrix &filter)  {
 }
 
 void print_RGBimg (Image &mtx )  {
-  std::cout << "Size 0 .. " <<mtx[0].size() << std::endl; //height
-  std::cout << "Size 00 .. " <<mtx[0][0].size() << std::endl; //width
+  std::cout << "Size 0 .. " <<mtx[0].size() << std::endl; //height 704
+  std::cout << "Size 00 .. " <<mtx[0][0].size() << std::endl; //width 450
 
   for(int j = 0; j < mtx[0].size(); ++j) {
     for(int i = 0; i < mtx[0][0].size(); ++i) {
         printf("(");
         for(int z = 0; z < 3; z++) {
-            std::cout << " " << mtx[j][i][z];
+            std::cout << " " << mtx[z][j][i];
         }
         printf(")");
     }
