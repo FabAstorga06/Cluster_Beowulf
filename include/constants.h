@@ -18,3 +18,5 @@ static const std::string _dir = "img/";
 typedef std::vector<double> Array;
 typedef std::vector<Array> Matrix;
 typedef std::vector<Matrix> Image;
+
+int img_height, img_width;

@@ -5,10 +5,29 @@
 #define COLS  12
 #define ROWS  8
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv )  {
 
+    /* Se checkean los parametros de entrada */
+    if (argc != PARAMS) {
+    	printf("Inserte los parametros necesarios...\n");
+	    exit(-1);
+    }
+
+    int kernel_size = atoi(argv[1]);
+    Matrix _kernel = calc_kernel(kernel_size, kernel_size, 100.0);
+    std::cout << "Cargando imagen..." << std::endl;
     Image _img = load_image(argv[2]);
-    //print_RGBimg(_img);
+    img_height = _img[0].size();
+    img_width = _img[0][0].size();
+    print_RGBimg(_img);
+
+    std::cout << "Aplicando filtro Gaussian Blur..." << std::endl;
+    Image _new_img = apply_gaussian_filter(_img, _kernel);
+    std::cout << "Guardando imagen..." << std::endl;
+    save_image(_new_img, argv[3]);
+    std::cout << "Listo!" << std::endl;
+    
+    /*********************************************************************/
 
     MPI_Init(&argc, &argv);
     int p, rank;
@@ -18,7 +37,7 @@ int main(int argc, char **argv) {
 
     char a[ROWS*COLS];
     const int NPROWS=1;  /* number of rows in _decomposition_ */
-    const int NPCOLS=3;  /* number of cols in _decomposition_ */
+    const int NPCOLS=2;  /* number of cols in _decomposition_ */
     const int BLOCKROWS = ROWS/NPROWS;  /* number of rows in _block_ */
     const int BLOCKCOLS = COLS/NPCOLS; /* number of cols in _block_ */
 
@@ -84,25 +103,5 @@ int main(int argc, char **argv) {
     }
 
     MPI_Finalize();
-
-
-     /*****************************************************************************/
-
-    /* Se checkean los parametros de entrada */
-    if (argc != PARAMS) {
-    	printf("Inserte los parametros necesarios...\n");
-	exit(1);
-    }
-
-    int kernel_size = atoi(argv[1]);
-
-    Matrix _kernel = calc_kernel(kernel_size, kernel_size, 100.0);
-    std::cout << "Cargando imagen..." << std::endl;
-    //Image _img = load_image(argv[2]);
-    std::cout << "Aplicando filtro Gaussian Blur..." << std::endl;
-    Image _new_img = apply_gaussian_filter(_img, _kernel);
-    std::cout << "Guardando imagen..." << std::endl;
-    save_image(_new_img, argv[3]);
-    std::cout << "Listo!" << std::endl;
     return 0;
 }
