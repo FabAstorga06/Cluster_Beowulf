@@ -2,7 +2,7 @@
 #include "image_utils.hpp"
 #include "gaussian_blur.hpp"
 
-#define TMP 425  /* variable temporal */
+/**************************************************************************/
 
 int main(int argc, char** argv )  {
 
@@ -35,20 +35,14 @@ int main(int argc, char** argv )  {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     unsigned char a[img_height*img_width];
-    const int NPROWS = 2;  /* number of rows in _decomposition_ */
-    const int NPCOLS = 3;  /* number of cols in _decomposition_ */
+    const int NPROWS = 1;  /* number of rows in _decomposition_ */
+    const int NPCOLS = 2;  /* number of cols in _decomposition_ */
     const int BLOCKROWS = img_height/NPROWS;  /* number of rows in _block_ */
     const int BLOCKCOLS = img_width/NPCOLS; /* number of cols in _block_ */
 
     // Fill the matrix with the image pixels
     if (rank == 0) {
-        int index = 0;
-        for (unsigned int i=0 ; i<img_height ; ++i) {
-            for (unsigned int j=0 ; j<img_width ; ++j) {
-                a[index] = (unsigned char)(_img[0][i][j]);
-                index++;
-            }
-        }
+        matrix_from_image(_img, a, img_width, img_height);        
     }
 
     if (p != NPROWS*NPCOLS) {
@@ -76,7 +70,7 @@ int main(int argc, char** argv )  {
         }
     }
 
-    MPI_Scatterv(a, counts, disps, blocktype, b, BLOCKROWS*BLOCKCOLS, MPI_CHAR, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(a, counts, disps, blocktype, b, BLOCKROWS*BLOCKCOLS,  MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
     Image gauss_img(RGB, Matrix(BLOCKROWS, Array(BLOCKCOLS)));
     image_from_matrix(b, gauss_img, BLOCKCOLS, BLOCKROWS);
@@ -85,29 +79,20 @@ int main(int argc, char** argv )  {
     /* each proc prints it's "b" out, in order */
     for (int proc = 0; proc < p; proc++) {
         if (proc == rank) {
-            if (rank == 0) {
-                printf("Rank = %d\n", rank);
-                res = apply_gaussian_filter(gauss_img, _kernel);
-                //save_image(res, argv[3]);
-            }
-            else {
-                res = apply_gaussian_filter(gauss_img, _kernel);
-                //save_image(res, argv[3]);
-                printf("Rank = %d\n", rank);
-            }
-
-            printf("\n");
-        }
+            printf("Rank = %d\n", rank);
+            res = apply_gaussian_filter(gauss_img, _kernel);
+          //  save_image(res, argv[3]);
+           
+        }   
         matrix_from_image(res, b, BLOCKCOLS, BLOCKROWS);
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    //MPI_Gather
-    MPI_Gatherv (b, BLOCKROWS*BLOCKCOLS, MPI_CHAR, a, counts, disps, blocktype, 0, MPI_COMM_WORLD);
-
+    //MPI_Gather    
+    MPI_Gatherv(b, BLOCKROWS*BLOCKCOLS,  MPI_UNSIGNED_CHAR, a, counts, disps, blocktype, 0, MPI_COMM_WORLD);
 
     Image result_image(RGB, Matrix(img_height, Array(img_width)));
-    image_from_matrix (a, result_image, img_width, img_height);
+    image_from_matrix(a, result_image, img_width, img_height);
     save_image(result_image, argv[3]);
 
     MPI_Finalize();

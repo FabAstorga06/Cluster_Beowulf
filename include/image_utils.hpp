@@ -37,18 +37,17 @@ void save_image(Image& img, const char* file )  {
 /************************************************************************/
 
 //Creates an Image out of a Matrix
-void image_from_matrix(unsigned char* _mtx, Image & img ,int cols, int size){
-    int index = 0;
+void image_from_matrix(unsigned char *_mtx, Image &img , int cols, int size ) {
     for (unsigned int i=0 ; i < size ; ++i) {
         for (unsigned int j=0 ; j < cols ; ++j) {
           int x = _mtx[(i*cols) + j];
-          img [0][i][j] = x;
+          img[0][i][j] = x;
         }
     }
 }
 
 //Creates a matrix out of an Image
-void matrix_from_image (Image &img, unsigned char *_mtx, int cols, int rows){
+void matrix_from_image (Image &img, unsigned char *_mtx, int cols, int rows) {
     std::cout << "cols" << cols<<std::endl;
     std::cout << "rows" << rows<<std::endl;
     int index = 0;
