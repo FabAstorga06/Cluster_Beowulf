@@ -4,9 +4,12 @@ Cluster Beowulf de cuatro nodos para agilizar algoritmos implementados en C para
 
 ### Compilación
 Para compilar el código, dirígase a la carpeta donde se encuentra el archivo Makefile y ejecute el siguiente comando: 
-* $ make
+```
+$ make
+```
 
 ### Ejecución
 Para ejecutar el código, corra el ejecutable que se generó en la carpeta donde se encuentran los archivos, mediante el siguiente comando: 
-* $ ./cluster
-
+```
+$ mpirun -np 2 ./cluster 10 goku.png salida.png
+```
