@@ -2,9 +2,9 @@
 #include "image_utils.hpp"
 #include "gaussian_blur.hpp"
 
-#define TMP 30  /* variable temporal */
+#define TMP 425  /* variable temporal */
 
-int main(int argc, char **argv )  {
+int main(int argc, char** argv )  {
 
     /* Se checkean los parametros de entrada */
     if (argc != PARAMS) {
@@ -13,18 +13,19 @@ int main(int argc, char **argv )  {
     }
 
     int kernel_size = atoi(argv[1]);
-    Matrix _kernel = calc_kernel(kernel_size, kernel_size, 100.0);
+    Matrix _kernel = calc_kernel(kernel_size, kernel_size, 10.0);
     std::cout << "Cargando imagen..." << std::endl;
     Image _img = load_image(argv[2]);
     img_height = _img[0].size();
     img_width = _img[0][0].size();
-   // print_RGBimg(_img);
+  //  printf("IMAGEN: \n");
+    //print_img(_img);
 
-    std::cout << "Aplicando filtro Gaussian Blur..." << std::endl;
+   /* std::cout << "Aplicando filtro Gaussian Blur..." << std::endl;
     Image _new_img = apply_gaussian_filter(_img, _kernel);
     std::cout << "Guardando imagen..." << std::endl;
     save_image(_new_img, argv[3]);
-    std::cout << "Listo!" << std::endl;
+    std::cout << "Listo!" << std::endl;  */
     
     /*********************************************************************/
 
@@ -33,18 +34,18 @@ int main(int argc, char **argv )  {
     MPI_Comm_size(MPI_COMM_WORLD, &p);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    char a[TMP*TMP];
-    const int NPROWS=2;  /* number of rows in _decomposition_ */
-    const int NPCOLS=1;  /* number of cols in _decomposition_ */
-    const int BLOCKROWS =TMP/NPROWS;  /* number of rows in _block_ */
-    const int BLOCKCOLS = TMP/NPCOLS; /* number of cols in _block_ */
+    unsigned char a[img_height*img_width];
+    const int NPROWS = 1;  /* number of rows in _decomposition_ */
+    const int NPCOLS = 2;  /* number of cols in _decomposition_ */
+    const int BLOCKROWS = img_height/NPROWS;  /* number of rows in _block_ */
+    const int BLOCKCOLS = img_width/NPCOLS; /* number of cols in _block_ */
 
     // Fill the matrix with the image pixels
     if (rank == 0) {
         int index = 0;
-        for (unsigned int i=0 ; i<TMP ; ++i) {
-            for (unsigned int j=0 ; j<TMP ; ++j) {
-                a[index] = (char)(_img[0][i][j]);
+        for (unsigned int i=0 ; i<img_height ; ++i) {
+            for (unsigned int j=0 ; j<img_width ; ++j) {
+                a[index] = (unsigned char)(_img[0][i][j]);
                 index++;
             }
         }
@@ -55,54 +56,53 @@ int main(int argc, char **argv )  {
         MPI_Finalize();
         exit(-1);
     }
-    char b[BLOCKROWS*BLOCKCOLS];
+    
+    unsigned char b[BLOCKROWS*BLOCKCOLS];
     for (int ii=0; ii<BLOCKROWS*BLOCKCOLS; ii++) b[ii] = 0;
 
     MPI_Datatype blocktype;
     MPI_Datatype blocktype2;
 
-    MPI_Type_vector(BLOCKROWS, BLOCKCOLS, TMP, MPI_CHAR, &blocktype2);
-    MPI_Type_create_resized( blocktype2, 0, sizeof(char), &blocktype);
+    MPI_Type_vector(BLOCKROWS, BLOCKCOLS, img_width, MPI_CHAR, &blocktype2);
+    MPI_Type_create_resized(blocktype2, 0, sizeof(char), &blocktype);
     MPI_Type_commit(&blocktype);
 
     int disps[NPROWS*NPCOLS];
     int counts[NPROWS*NPCOLS];
     for (int ii=0; ii<NPROWS; ii++) {
         for (int jj=0; jj<NPCOLS; jj++) {
-            disps[ii*NPCOLS+jj] = ii*TMP*BLOCKROWS+jj*BLOCKCOLS;
+            disps[ii*NPCOLS+jj] = ii*img_width*BLOCKROWS+jj*BLOCKCOLS;
             counts [ii*NPCOLS+jj] = 1;
         }
     }
-    //printf("a -> %d\n", );
+
     MPI_Scatterv(a, counts, disps, blocktype, b, BLOCKROWS*BLOCKCOLS, MPI_CHAR, 0, MPI_COMM_WORLD);
 
+    Image gauss_img(RGB, Matrix(BLOCKROWS, Array(BLOCKCOLS)));
+    image_from_matrix(b, gauss_img, BLOCKCOLS, BLOCKROWS);
+
     /* each proc prints it's "b" out, in order */
-    for (int proc=0; proc<p; proc++) {
+    for (int proc = 0; proc < p; proc++) {
         if (proc == rank) {
-            printf("Rank = %d\n", rank);
             if (rank == 0) {
-                printf("Matriz global: \n");
-                for (int ii=0; ii<TMP; ii++) {
-                    for (int jj=0; jj<TMP; jj++) {
-                        printf("%2d ", a[ii*TMP+jj]);
-                    }
-                    printf("\n");
-                }
+              printf("Rank = %d\n", rank);
+         
+            } 
+            else {
+
+                printf("Rank = %d\n", rank);
+                Image res = apply_gaussian_filter(gauss_img, _kernel);
+                save_image(res, argv[3]); 
+
+
             }
-            //else {
-              printf("Trozo de matriz:\n");
-              for (int ii=0; ii<BLOCKROWS; ii++) {
-                  for (int jj=0; jj<BLOCKCOLS; jj++) {
-                      printf("%2d ",b[ii*BLOCKCOLS+jj]);
-                  }
-                  printf("\n");
-              }   
-            //}
 
             printf("\n");
         }
         MPI_Barrier(MPI_COMM_WORLD);
-    } 
+    }
+
+    //MPI_Gather
 
     MPI_Finalize();
     return 0;

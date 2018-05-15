@@ -13,13 +13,11 @@ Matrix calc_kernel(int height, int width, double sigma )  {
             res += kernel[i][j];
         }
     }
-
     for (int x=0; x<height; ++x) {
         for (int y=0; y<width; ++y) {
             kernel[x][y] /= res;
         }
     }
-
     return kernel;
 }
 
@@ -51,17 +49,15 @@ Image apply_gaussian_filter(Image &img, Matrix &filter)  {
     return new_img;
 }
 
-void print_RGBimg (Image &mtx )  {
-  std::cout << "Height: " <<mtx[0].size() << std::endl; 
-  std::cout << "Width: " <<mtx[0][0].size() << std::endl; 
+void print_img (Image &mtx)  {
 
-  for(int j = 0; j < img_height; ++j) {
-    for(int i = 0; i < img_width; ++i) {
-        printf("(");
+  for(int j = 0; j < 30; ++j) {
+    for(int i = 0; i < 30; ++i) {
+       // printf("(");
         for(int z = 0; z < RGB; z++) {
-            std::cout << " " << mtx[z][j][i];
+            std::cout << " " << mtx[0][j][i];
         }
-        printf(")");
+       // printf(")");
     }
     printf("\n");
   }

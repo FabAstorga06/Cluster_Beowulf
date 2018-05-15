@@ -32,5 +32,19 @@ void save_image(Image& img, const char* file )  {
     }
     img_file.write( _dir + file );
 }
+
+
+/************************************************************************/
+
+//Creates an Image out of a Matrix
+void image_from_matrix(unsigned char* _mtx, Image & img ,int cols, int size){
+    int index = 0;
+    for (unsigned int i=0 ; i < size ; ++i) {
+        for (unsigned int j=0 ; j < cols ; ++j) {
+          int x = _mtx[(i*cols) + j];
+          img [0][i][j] = x;
+        }
+    }
+}
  
 #endif
