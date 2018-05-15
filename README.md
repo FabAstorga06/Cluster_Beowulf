@@ -9,7 +9,7 @@ $ make
 ```
 
 ### Ejecución
-Para ejecutar el código, corra el ejecutable que se generó en la carpeta donde se encuentran los archivos, mediante el siguiente comando: 
+Para ejecutar el código, corra el ejecutable que se generó en la carpeta donde se encuentran los archivos, mediante el siguiente comando:
 ```
 $ mpirun -np 2 ./cluster 10 goku.png salida.png
 ```
