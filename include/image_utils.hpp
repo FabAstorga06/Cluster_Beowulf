@@ -46,5 +46,34 @@ void image_from_matrix(unsigned char* _mtx, Image & img ,int cols, int size){
         }
     }
 }
- 
+
+//Creates a matrix out of an Image
+void matrix_from_image (Image &img, unsigned char *_mtx, int cols, int rows){
+    std::cout << "cols" << cols<<std::endl;
+    std::cout << "rows" << rows<<std::endl;
+    int index = 0;
+    for (unsigned int i=0 ; i<rows ; ++i) {
+        for (unsigned int j=0 ; j<cols ; ++j) {
+            _mtx[index] = (unsigned char)(img[0][j][i]);
+            index++;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #endif

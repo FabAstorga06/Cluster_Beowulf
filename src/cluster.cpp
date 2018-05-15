@@ -26,7 +26,7 @@ int main(int argc, char** argv )  {
     std::cout << "Guardando imagen..." << std::endl;
     save_image(_new_img, argv[3]);
     std::cout << "Listo!" << std::endl;  */
-    
+
     /*********************************************************************/
 
     MPI_Init(&argc, &argv);
@@ -35,8 +35,8 @@ int main(int argc, char** argv )  {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     unsigned char a[img_height*img_width];
-    const int NPROWS = 1;  /* number of rows in _decomposition_ */
-    const int NPCOLS = 2;  /* number of cols in _decomposition_ */
+    const int NPROWS = 2;  /* number of rows in _decomposition_ */
+    const int NPCOLS = 3;  /* number of cols in _decomposition_ */
     const int BLOCKROWS = img_height/NPROWS;  /* number of rows in _block_ */
     const int BLOCKCOLS = img_width/NPCOLS; /* number of cols in _block_ */
 
@@ -56,7 +56,7 @@ int main(int argc, char** argv )  {
         MPI_Finalize();
         exit(-1);
     }
-    
+
     unsigned char b[BLOCKROWS*BLOCKCOLS];
     for (int ii=0; ii<BLOCKROWS*BLOCKCOLS; ii++) b[ii] = 0;
 
@@ -81,28 +81,34 @@ int main(int argc, char** argv )  {
     Image gauss_img(RGB, Matrix(BLOCKROWS, Array(BLOCKCOLS)));
     image_from_matrix(b, gauss_img, BLOCKCOLS, BLOCKROWS);
 
+    Image res (RGB, Matrix(BLOCKROWS, Array(BLOCKCOLS)));
     /* each proc prints it's "b" out, in order */
     for (int proc = 0; proc < p; proc++) {
         if (proc == rank) {
             if (rank == 0) {
-              printf("Rank = %d\n", rank);
-         
-            } 
-            else {
-
                 printf("Rank = %d\n", rank);
-                Image res = apply_gaussian_filter(gauss_img, _kernel);
-                save_image(res, argv[3]); 
-
-
+                res = apply_gaussian_filter(gauss_img, _kernel);
+                //save_image(res, argv[3]);
+            }
+            else {
+                res = apply_gaussian_filter(gauss_img, _kernel);
+                //save_image(res, argv[3]);
+                printf("Rank = %d\n", rank);
             }
 
             printf("\n");
         }
+        matrix_from_image(res, b, BLOCKCOLS, BLOCKROWS);
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
     //MPI_Gather
+    MPI_Gatherv (b, BLOCKROWS*BLOCKCOLS, MPI_CHAR, a, counts, disps, blocktype, 0, MPI_COMM_WORLD);
+
+
+    Image result_image(RGB, Matrix(img_height, Array(img_width)));
+    image_from_matrix (a, result_image, img_width, img_height);
+    save_image(result_image, argv[3]);
 
     MPI_Finalize();
     return 0;
