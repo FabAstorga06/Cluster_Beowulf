@@ -4,6 +4,16 @@
 
 /**************************************************************************/
 
+void print_arr(unsigned char* arr, int cols, int rows) {
+    for (int ii=0; ii<rows; ii++) {
+        for (int jj=0; jj<cols; jj++) {
+                printf("%3d ",(int)(arr[ii*cols+jj]));
+            }
+            printf("\n");
+        }
+        printf("\n");
+}
+
 int main(int argc, char** argv )  {
 
     /* Se checkean los parametros de entrada */
@@ -47,7 +57,7 @@ int main(int argc, char** argv )  {
 
     // Fill the matrix with the image pixels
     if (rank == 0) {
-        matrix_from_image(_img, a, img_width, img_height);        
+        matrix_from_image(_img, a, img_width, img_height);
     }
 
     if (p != NPROWS*NPCOLS) {
@@ -90,20 +100,31 @@ int main(int argc, char** argv )  {
         if (proc == rank) {
             printf("Rank = %d\n", rank);
             filtered = apply_gaussian_filter(gauss_img, _kernel);
-           // save_image(filtered, argv[3]);           
-        }   
+           //save_image(filtered, argv[3]);
+        }
         std::cout << "ROWS: " << filtered[0].size() << std::endl;
         std::cout << "COLS: " << filtered[0][0].size() << std::endl;
-        matrix_from_image(filtered, b, filtered[0].size(), filtered[0][0].size());
+        std::cout << "Imagen "<< std::endl;
+        //print_img(filtered);
+
+        matrix_from_image(filtered, b, filtered[0][0].size(), filtered[0].size());
+        //matrix_from_image(filtered, b, 300, 300);
+        std::cout << "Matriz "<< std::endl;
+        //print_arr(b,30,10);
+
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    //MPI_Gather    
+    //MPI_Gather
     MPI_Gatherv(b, BLOCKROWS*BLOCKCOLS,  MPI_UNSIGNED_CHAR, a, counts, disps, blocktype, 0, MPI_COMM_WORLD);
+
     Image result_image(RGB, Matrix(img_height, Array(img_width)));
-    image_from_matrix(b, result_image, img_width, img_height);
+    image_from_matrix(a, result_image, img_width, img_height);
+    //image_from_matrix(b, result_image, 300, 300);
+    std::cout << "Result image "<< std::endl;
+    //print_img(result_image);
     save_image(result_image, argv[3]);
-    
+
     MPI_Finalize();
     return 0;
 }

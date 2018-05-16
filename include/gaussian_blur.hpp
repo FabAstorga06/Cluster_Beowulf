@@ -30,17 +30,20 @@ Image apply_gaussian_filter(Image &img, Matrix &filter)  {
     int width = img[0][0].size();
     int filter_height = filter.size();
     int filter_width = filter[0].size();
-    int new_image_height = (height - filter_height+1);
-    int new_image_width = (width - filter_width+1);
 
-    Image new_img(RGB, Matrix(new_image_height, Array(new_image_width)));
+    Image new_img(RGB, Matrix(height, Array(width)));
 
     for (int d=0; d<RGB; ++d) {
-        for (int i=0; i<new_image_height; ++i) {
-            for (int j=0; j<new_image_width; ++j) {
+        for (int i=0; i<height; ++i) {
+            for (int j=0; j<width; ++j) {
                 for (int h=i; h<(i+filter_height); ++h) {
                     for (int w=j; w<(j+filter_width); ++w) {
-                        new_img[d][i][j] += (filter[h-i][w-j] * img[d][h][w] );
+                        if(h>=height || w>= width){
+                            break;
+                        }
+                        else{
+                            new_img[d][i][j] += (filter[h-i][w-j] * img[d][h][w] );
+                        }
                     }
                 }
             }
@@ -50,14 +53,14 @@ Image apply_gaussian_filter(Image &img, Matrix &filter)  {
 }
 
 void print_img (Image &mtx)  {
-
-  for(int j = 0; j < 30; ++j) {
-    for(int i = 0; i < 30; ++i) {
-            printf("%3f ",(double)mtx[0][j][i]);
+  for(int i = 0; i < 300; ++i) {
+    for(int j = 0; j < 300; ++j) {
+       // printf("(");
+            std::cout << " " << (unsigned int)mtx[0][i][j];
+       // printf(")");
     }
     printf("\n");
   }
-  printf("\n");
 }
 
 #endif

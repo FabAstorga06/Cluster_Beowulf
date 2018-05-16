@@ -43,17 +43,16 @@ void image_from_matrix(unsigned char *_mtx, Image &img , int cols, int rows ) {
         for (int j=0 ; j<cols ; ++j) {
           img[0][i][j] = _mtx[index];
           index++;
-        }   
+        }
     }
 }
 
 //Creates a matrix out of an Image
 void matrix_from_image (Image &img, unsigned char *_mtx, int cols, int rows) {
-    int index = 0;
+
     for (unsigned int i=0 ; i<rows ; ++i) {
         for (unsigned int j=0 ; j<cols ; ++j) {
-            _mtx[index] = (unsigned char)(img[0][i][j]);
-            index++;
+            _mtx[(i*cols +j)] = (unsigned char)(img[0][i][j]);
         }
     }
 }
@@ -61,7 +60,7 @@ void matrix_from_image (Image &img, unsigned char *_mtx, int cols, int rows) {
 
 
 
- //matrix_from_image(_img, a, img_width, img_height);  
+ //matrix_from_image(_img, a, img_width, img_height);
 //image_from_matrix(b, gauss_img, BLOCKCOLS, BLOCKROWS);
 
 
