@@ -53,14 +53,11 @@ void print_img (Image &mtx)  {
 
   for(int j = 0; j < 30; ++j) {
     for(int i = 0; i < 30; ++i) {
-       // printf("(");
-        for(int z = 0; z < RGB; z++) {
-            std::cout << " " << mtx[0][j][i];
-        }
-       // printf(")");
+            printf("%3f ",(double)mtx[0][j][i]);
     }
     printf("\n");
   }
+  printf("\n");
 }
 
 #endif

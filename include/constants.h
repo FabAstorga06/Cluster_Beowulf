@@ -9,7 +9,6 @@
 #include <mpi.h>
 
 /* Constantes de utilidad */
-
 #define RGB 3
 #define PARAMS 4
 
