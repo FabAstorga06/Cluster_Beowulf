@@ -3,6 +3,8 @@
 
 /************************************************************************************/
 
+/* Carga imagen a programa */
+
 Image load_image(const char* file ) {
     png::image<png::gray_pixel> img( _dir + file);
     Image img_mtx(RGB, Matrix(img.get_height(), Array(img.get_width())));
@@ -16,6 +18,8 @@ Image load_image(const char* file ) {
 }
 
 /************************************************************************/
+
+/* Guarda imagen de memoria a disco */
 
 void save_image(Image& img, const char* file )  {
     assert(img.size() == RGB);
@@ -36,7 +40,8 @@ void save_image(Image& img, const char* file )  {
 
 /************************************************************************/
 
-//Creates an Image out of a Matrix
+/* Crea un objeto imagen a partir de una matriz */
+
 void image_from_matrix(unsigned char *_mtx, Image &img , int cols, int rows ) {
     int index = 0;
     for (int i=0 ; i<rows ; ++i) {
@@ -47,8 +52,10 @@ void image_from_matrix(unsigned char *_mtx, Image &img , int cols, int rows ) {
     }
 }
 
-//Creates a matrix out of an Image
-void matrix_from_image (Image &img, unsigned char *_mtx, int cols, int rows) {
+
+/* Crea una matriz a partir de un objeto imagen */
+
+void matrix_from_image (Image &img, unsigned char *_mtx, int cols, int rows ) {
 
     for (unsigned int i=0 ; i<rows ; ++i) {
         for (unsigned int j=0 ; j<cols ; ++j) {
@@ -56,22 +63,5 @@ void matrix_from_image (Image &img, unsigned char *_mtx, int cols, int rows) {
         }
     }
 }
-
-
-
-
- //matrix_from_image(_img, a, img_width, img_height);
-//image_from_matrix(b, gauss_img, BLOCKCOLS, BLOCKROWS);
-
-
-
-
-
-
-
-
-
-
-
 
 #endif

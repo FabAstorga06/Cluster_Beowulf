@@ -7,10 +7,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <ctime>
 
 /* Constantes de utilidad */
 #define RGB 3
-#define PARAMS 4
+#define PARAMS 5
+#define NS 100000000
 
 static const std::string _dir = "img/";
 

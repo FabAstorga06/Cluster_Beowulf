@@ -4,16 +4,6 @@
 
 /**************************************************************************/
 
-void print_arr(unsigned char* arr, int cols, int rows) {
-    for (int ii=0; ii<rows; ii++) {
-        for (int jj=0; jj<cols; jj++) {
-                printf("%3d ",(int)(arr[ii*cols+jj]));
-            }
-            printf("\n");
-        }
-        printf("\n");
-}
-
 int main(int argc, char** argv )  {
 
     /* Se checkean los parametros de entrada */
@@ -22,52 +12,42 @@ int main(int argc, char** argv )  {
 	    exit(-1);
     }
 
+    /* Se mide tiempo de ejecución */
+    clock_t start_time = clock();
+
     int kernel_size = atoi(argv[1]);
-    Matrix _kernel = calc_kernel(kernel_size, kernel_size, 10.0);
-    std::cout << "Cargando imagen..." << std::endl;
-    Image _img = load_image(argv[2]);
+    double _sigma = atol(argv[2]);
+    Matrix _kernel = calc_kernel(kernel_size, kernel_size, _sigma);
+    Image _img = load_image(argv[3]);
     img_height = _img[0].size();
     img_width = _img[0][0].size();
-    std::cout << "cols: " << img_width << std::endl;
-    std::cout << "rows: " << img_height<< std::endl;
-  //  printf("IMAGEN: \n");
-    //print_img(_img);
-
-   /* std::cout << "Aplicando filtro Gaussian Blur..." << std::endl;
-    Image _new_img = apply_gaussian_filter(_img, _kernel);
-    std::cout << "Guardando imagen..." << std::endl;
-    save_image(_new_img, argv[3]);
-    std::cout << "Listo!" << std::endl;  */
-
-    /*********************************************************************/
 
     MPI_Init(&argc, &argv);
     int p, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &p);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    unsigned char a[img_height*img_width];
-    const int NPROWS = 1;  /* number of rows in _decomposition_ */
-    const int NPCOLS = p;  /* number of cols in _decomposition_ */
-    const int BLOCKROWS = img_height/NPROWS;  /* number of rows in _block_ */
-    const int BLOCKCOLS = img_width/NPCOLS; /* number of cols in _block_ */
+    unsigned char arr_img_comp[img_height*img_width];
+    const int NPROWS = 1; 
+    const int NPCOLS = p;  
+    const int BLOCKROWS = (img_height / NPROWS); 
+    const int BLOCKCOLS = (img_width / NPCOLS);
 
-    std::cout << "blockcols: " << BLOCKCOLS << std::endl;
-    std::cout << "blockrows: " << BLOCKROWS<< std::endl;
-
-    // Fill the matrix with the image pixels
+    // Llena matriz con pixeles de la imagen
     if (rank == 0) {
-        matrix_from_image(_img, a, img_width, img_height);
+        matrix_from_image(_img, arr_img_comp, img_width, img_height);
     }
 
+    /* Verifica si se divide correctamente la imagen según la cantidad de núcleos */
     if (p != NPROWS*NPCOLS) {
         fprintf(stderr,"Error: number of processors %d != %d x %d\n", p, NPROWS, NPCOLS);
         MPI_Finalize();
         exit(-1);
     }
 
-    unsigned char b[BLOCKROWS*BLOCKCOLS];
-    for (int ii=0; ii<BLOCKROWS*BLOCKCOLS; ii++) b[ii] = 0;
+    /* Prepara los bloques de matriz */
+    unsigned char arr_img_block[BLOCKROWS*BLOCKCOLS];
+    for (int ii=0; ii<BLOCKROWS*BLOCKCOLS; ii++) { arr_img_block[ii] = 0; }
 
     MPI_Datatype blocktype;
     MPI_Datatype blocktype2;
@@ -85,46 +65,36 @@ int main(int argc, char** argv )  {
         }
     }
 
-    MPI_Scatterv(a, counts, disps, blocktype, b, BLOCKROWS*BLOCKCOLS,  MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+    /* Divide la matriz según la cantidad de nodos y separa el trabajo */
+    MPI_Scatterv(arr_img_comp, counts, disps, blocktype, arr_img_block,
+                 BLOCKROWS*BLOCKCOLS,  MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 
     Image gauss_img(RGB, Matrix(BLOCKROWS, Array(BLOCKCOLS)));
-    image_from_matrix(b, gauss_img, BLOCKCOLS, BLOCKROWS);
-
-   // print_img(gauss_img);
-   // save_image(gauss_img, argv[3]);
-
+    image_from_matrix(arr_img_block, gauss_img, BLOCKCOLS, BLOCKROWS);
 
     Image filtered(RGB, Matrix(BLOCKROWS, Array(BLOCKCOLS)));
-    /* each proc prints it's "b" out, in order */
+
     for (int proc = 0; proc < p; proc++) {
         if (proc == rank) {
-            printf("Rank = %d\n", rank);
             filtered = apply_gaussian_filter(gauss_img, _kernel);
-           //save_image(filtered, argv[3]);
         }
-        std::cout << "ROWS: " << filtered[0].size() << std::endl;
-        std::cout << "COLS: " << filtered[0][0].size() << std::endl;
-        std::cout << "Imagen "<< std::endl;
-        //print_img(filtered);
 
-        matrix_from_image(filtered, b, filtered[0][0].size(), filtered[0].size());
-        //matrix_from_image(filtered, b, 300, 300);
-        std::cout << "Matriz "<< std::endl;
-        //print_arr(b,30,10);
-
+        matrix_from_image(filtered, arr_img_block, filtered[0][0].size(), filtered[0].size());
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    //MPI_Gather
-    MPI_Gatherv(b, BLOCKROWS*BLOCKCOLS,  MPI_UNSIGNED_CHAR, a, counts, disps, blocktype, 0, MPI_COMM_WORLD);
+    /* Rearma la matriz despues de haber sido distribuida a los nodos */
+    MPI_Gatherv(arr_img_block, BLOCKROWS*BLOCKCOLS,  MPI_UNSIGNED_CHAR, arr_img_comp, counts,
+                 disps, blocktype, 0, MPI_COMM_WORLD);
 
+    /* Muestra resultado de la imagen filtrada */
     Image result_image(RGB, Matrix(img_height, Array(img_width)));
-    image_from_matrix(a, result_image, img_width, img_height);
-    //image_from_matrix(b, result_image, 300, 300);
-    std::cout << "Result image "<< std::endl;
-    //print_img(result_image);
-    save_image(result_image, argv[3]);
-
+    image_from_matrix(arr_img_comp, result_image, img_width, img_height);
+    save_image(result_image, argv[4]);
     MPI_Finalize();
+
+    clock_t end_time = clock();
+    double _duration = double(end_time - start_time) / CLOCKS_PER_SEC;
+    std::cout << "Tiempo de ejecución en rank " << rank << ": " << _duration << "s" << std::endl;
     return 0;
 }

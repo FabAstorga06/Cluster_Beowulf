@@ -3,6 +3,8 @@
 
 /************************************************************************************/
 
+/* Kernel para filtro */
+
 Matrix calc_kernel(int height, int width, double sigma )  {
     Matrix kernel(height, Array(width));
     double res = 0.0;
@@ -22,6 +24,8 @@ Matrix calc_kernel(int height, int width, double sigma )  {
 }
 
 /************************************************************************************/
+
+/* Filtro Gauss Blur */
 
 Image apply_gaussian_filter(Image &img, Matrix &filter)  {
     assert(img.size()==RGB && filter.size()!=0);
@@ -52,6 +56,11 @@ Image apply_gaussian_filter(Image &img, Matrix &filter)  {
     return new_img;
 }
 
+
+/************************************************************************************/
+
+/* Funciones para imprimir matrices e imagenes */
+
 void print_img (Image &mtx)  {
   for(int i = 0; i < 300; ++i) {
     for(int j = 0; j < 300; ++j) {
@@ -61,6 +70,16 @@ void print_img (Image &mtx)  {
     }
     printf("\n");
   }
+}
+
+void print_arr(unsigned char* arr, int cols, int rows) {
+    for (int ii=0; ii<rows; ii++) {
+        for (int jj=0; jj<cols; jj++) {
+                printf("%3d ",(int)(arr[ii*cols+jj]));
+            }
+            printf("\n");
+        }
+        printf("\n");
 }
 
 #endif
