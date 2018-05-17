@@ -8,11 +8,14 @@
 #include <stdlib.h>
 #include <mpi.h>
 #include <ctime>
+#include <string>
 
 /* Constantes de utilidad */
 #define RGB 3
-#define PARAMS 5
+#define PARAMS 6
 #define NS 100000000
+#define REFLECT "-r"
+#define CIRCULAR "-c"
 
 static const std::string _dir = "img/";
 

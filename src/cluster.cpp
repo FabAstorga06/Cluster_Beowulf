@@ -11,6 +11,14 @@ int main(int argc, char** argv )  {
     	printf("Inserte los parametros necesarios...\n");
 	    exit(-1);
     }
+    std::string _flag = argv[5];
+    if ( _flag != REFLECT && _flag != CIRCULAR) {
+        printf("¡Bandera inválida! Utilice '-r' o '-c' para manipular su imagen...\n");
+	    exit(-1);
+    }
+    unsigned const int indicator = (_flag == REFLECT) ? 1 : 0;
+
+    std::cout << "indicator: " << indicator<< std::endl;
 
     /* Se mide tiempo de ejecución */
     clock_t start_time = clock();
@@ -76,7 +84,8 @@ int main(int argc, char** argv )  {
 
     for (int proc = 0; proc < p; proc++) {
         if (proc == rank) {
-            filtered = apply_gaussian_filter(gauss_img, _kernel);
+            filtered = (indicator) ? (apply_gaussian_filter(gauss_img, _kernel, reflect)) : 
+                          (apply_gaussian_filter(gauss_img, _kernel, circular)) ;
         }
 
         matrix_from_image(filtered, arr_img_block, filtered[0][0].size(), filtered[0].size());
