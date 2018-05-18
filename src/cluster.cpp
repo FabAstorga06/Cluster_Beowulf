@@ -18,8 +18,6 @@ int main(int argc, char** argv )  {
     }
     unsigned const int indicator = (_flag == REFLECT) ? 1 : 0;
 
-    std::cout << "indicator: " << indicator<< std::endl;
-
     /* Se mide tiempo de ejecución */
     clock_t start_time = clock();
 
@@ -34,6 +32,9 @@ int main(int argc, char** argv )  {
     int p, rank;
     MPI_Comm_size(MPI_COMM_WORLD, &p);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    char processor_name[MPI_MAX_PROCESSOR_NAME];
+    int name_len;
+    MPI_Get_processor_name(processor_name, &name_len);
 
     unsigned char arr_img_comp[img_height*img_width];
     const int NPROWS = 1; 
@@ -84,6 +85,9 @@ int main(int argc, char** argv )  {
 
     for (int proc = 0; proc < p; proc++) {
         if (proc == rank) {
+            std::cout << "Processor: " << processor_name << std::endl;
+	    std::cout << "Rank: " << rank << std::endl;
+            std::cout << "-------------------------------------------------" << std::endl;
             filtered = (indicator) ? (apply_gaussian_filter(gauss_img, _kernel, reflect)) : 
                           (apply_gaussian_filter(gauss_img, _kernel, circular)) ;
         }
@@ -96,14 +100,16 @@ int main(int argc, char** argv )  {
     MPI_Gatherv(arr_img_block, BLOCKROWS*BLOCKCOLS,  MPI_UNSIGNED_CHAR, arr_img_comp, counts,
                  disps, blocktype, 0, MPI_COMM_WORLD);
 
-    /* Muestra resultado de la imagen filtrada */
-    Image result_image(RGB, Matrix(img_height, Array(img_width)));
-    image_from_matrix(arr_img_comp, result_image, img_width, img_height);
-    save_image(result_image, argv[4]);
+    /* Muestra resultado de la imagen filtrada */ 
+	if (rank == 0) {
+		Image result_image(RGB, Matrix(img_height, Array(img_width)));
+		image_from_matrix(arr_img_comp, result_image, img_width, img_height);
+		save_image(result_image, argv[4]); 
+	}
     MPI_Finalize();
 
     clock_t end_time = clock();
     double _duration = double(end_time - start_time) / CLOCKS_PER_SEC;
-    std::cout << "Tiempo de ejecución en rank " << rank << ": " << _duration << "s" << std::endl;
+    std::cout << "Tiempo de ejecución en procesador: " << processor_name << ": " << _duration << " segundos" << std::endl;
     return 0;
 }
